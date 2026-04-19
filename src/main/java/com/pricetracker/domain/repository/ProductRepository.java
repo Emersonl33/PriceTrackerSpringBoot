@@ -20,38 +20,32 @@ public class ProductRepository {
         table.putItem(product);
     }
 
-    public List<Product> findByTenantId(String tenantId) {
+    public List<Product> findByUserId(String userId) {
         QueryConditional condition = QueryConditional
-                .keyEqualTo(Key.builder().partitionValue(tenantId).build());
+                .keyEqualTo(Key.builder().partitionValue(userId).build());
+        return table.query(condition).items().stream().toList();
+    }
 
-        return table.query(condition)
-                .items()
-                .stream()
+    public List<Product> findByUserIdAndName(String userId, String name) {
+        return findByUserId(userId).stream()
+                .filter(p -> p.getName().toLowerCase().contains(name.toLowerCase()))
                 .toList();
     }
 
-    public Product findById(String tenantId, String productId) {
+    public Product findById(String userId, String productId) {
         return table.getItem(Key.builder()
-                .partitionValue(tenantId)
+                .partitionValue(userId)
                 .sortValue(productId)
                 .build());
     }
 
-    // usado pelo scheduler: busca todos os produtos de todos os tenants
     public List<Product> findAll() {
         return table.scan().items().stream().toList();
     }
 
-    public List<Product> findAllActive() {
-        // busca todos os produtos de todos os tenants (para o scheduler processar)
-        return table.scan().items().stream()
-                .filter(p -> p.getUrl() != null && !p.getUrl().isBlank())
-                .toList();
-    }
-
-    public void delete(String tenantId, String productId) {
+    public void delete(String userId, String productId) {
         table.deleteItem(Key.builder()
-                .partitionValue(tenantId)
+                .partitionValue(userId)
                 .sortValue(productId)
                 .build());
     }

@@ -22,10 +22,11 @@ public class JwtService {
         this.expiration = expiration;
     }
 
-    public String generateToken(String tenantId, String email) {
+    public String generateToken(String tenantId, String email, String role) {
         return Jwts.builder()
                 .subject(email)
                 .claim("tenantId", tenantId)
+                .claim("role", role)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(key)
@@ -38,6 +39,10 @@ public class JwtService {
 
     public String extractEmail(String token) {
         return parseClaims(token).getSubject();
+    }
+
+    public String extractRole(String token) {
+        return (String) parseClaims(token).get("role");
     }
 
     public boolean isValid(String token) {

@@ -11,7 +11,10 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Component
 public class ScraperScheduler {
@@ -20,69 +23,63 @@ public class ScraperScheduler {
 
     private final ProductRepository productRepo;
     private final SnapshotRepository snapshotRepo;
-    private final PriceScraper scraper;
+    private final List<GamePriceFetcher> fetchers;
     private final ExecutorService threadPool = Executors.newFixedThreadPool(5);
 
     public ScraperScheduler(ProductRepository productRepo,
                             SnapshotRepository snapshotRepo,
-                            PriceScraper scraper) {
+                            List<GamePriceFetcher> fetchers) {
         this.productRepo = productRepo;
         this.snapshotRepo = snapshotRepo;
-        this.scraper = scraper;
+        this.fetchers = fetchers;
     }
 
     @Scheduled(fixedDelayString = "${scraper.interval.ms}")
     public void runScraping() {
-        try {
-            List<Product> all = productRepo.findAllActive();
-            log.info("Scheduler iniciado — {} produtos para verificar", all.size());
+        List<Product> all = productRepo.findAll();
+        log.info("Scheduler iniciado — {} produtos para verificar", all.size());
 
-            if (all.isEmpty()) {
-                log.info("Nenhum produto ativo para scraping");
-                return;
-            }
+        List<CompletableFuture<Void>> futures = all.stream()
+                .map(p -> CompletableFuture.runAsync(() -> scrapeProduct(p), threadPool))
+                .toList();
 
-            List<CompletableFuture<Void>> futures = all.stream()
-                    .map(p -> CompletableFuture.runAsync(() -> scrapeProduct(p), threadPool))
-                    .toList();
-
-            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-            log.info("Scheduler finalizado com sucesso");
-        } catch (Exception e) {
-            log.error("Erro fatal no scheduler de scraping", e);
-        }
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        log.info("Scheduler finalizado");
     }
 
     private void scrapeProduct(Product product) {
-        try {
-            log.debug("Scraping: {} ({})", product.getName(), product.getUrl());
+        // encontra o fetcher que suporta a URL do produto
+        GamePriceFetcher fetcher = fetchers.stream()
+                .filter(f -> f.supports(product.getUrl()))
+                .findFirst()
+                .orElse(null);
 
-            var priceOptional = scraper.scrape(product.getUrl());
-
-            if (priceOptional.isPresent()) {
-                var price = priceOptional.get();
-
-                // 1. salva snapshot no histórico
-                PriceSnapshot snapshot = PriceSnapshot.builder()
-                        .productId(product.getProductId())
-                        .capturedAt(Instant.now().toString())
-                        .price(price)
-                        .build();
-                snapshotRepo.save(snapshot);
-
-                // 2. atualiza currentPrice no produto para consulta rápida
-                product.setCurrentPrice(price);
-                product.setUpdatedAt(Instant.now().toString());
-                productRepo.save(product);
-
-                log.info("✓ Preço capturado: {} → R$ {}", product.getName(), price);
-            } else {
-                log.warn("✗ Não foi possível extrair preço de: {} ({})", product.getName(), product.getUrl());
-            }
-        } catch (Exception e) {
-            log.error("✗ Erro ao fazer scraping de {} ({}): {}",
-                    product.getName(), product.getUrl(), e.getMessage(), e);
+        if (fetcher == null) {
+            log.warn("Nenhum fetcher suporta a URL: {}", product.getUrl());
+            return;
         }
+
+        log.debug("[{}] buscando preço de: {}", fetcher.sourceName(), product.getName());
+
+        Optional<java.math.BigDecimal> price = fetcher.fetchPrice(product.getUrl());
+
+        price.ifPresentOrElse(p -> {
+            // salva snapshot no histórico
+            PriceSnapshot snapshot = PriceSnapshot.builder()
+                    .productId(product.getProductId())
+                    .capturedAt(Instant.now().toString())
+                    .price(p)
+                    .build();
+            snapshotRepo.save(snapshot);
+
+            // atualiza currentPrice no produto
+            product.setCurrentPrice(p);
+            product.setUpdatedAt(Instant.now().toString());
+            productRepo.save(product);
+
+            log.info("[{}] {} → R$ {}", fetcher.sourceName(), product.getName(), p);
+
+        }, () -> log.warn("[{}] não retornou preço para: {}",
+                fetcher.sourceName(), product.getName()));
     }
 }
-

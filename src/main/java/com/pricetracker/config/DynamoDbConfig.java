@@ -1,5 +1,6 @@
 package com.pricetracker.config;
 
+import com.pricetracker.domain.model.AppUser;
 import com.pricetracker.domain.model.PriceSnapshot;
 import com.pricetracker.domain.model.Product;
 import org.springframework.beans.factory.annotation.Value;
@@ -57,6 +58,14 @@ public class DynamoDbConfig {
     public DynamoDbTable<PriceSnapshot> snapshotTable(DynamoDbEnhancedClient enhanced) {
         DynamoDbTable<PriceSnapshot> table = enhanced.table("price_history",
                 TableSchema.fromBean(PriceSnapshot.class));
+        createTableIfNotExists(table);
+        return table;
+    }
+
+    @Bean
+    public DynamoDbTable<AppUser> userTable(DynamoDbEnhancedClient enhanced) {
+        DynamoDbTable<AppUser> table = enhanced.table("users",
+                TableSchema.fromBean(AppUser.class));
         createTableIfNotExists(table);
         return table;
     }

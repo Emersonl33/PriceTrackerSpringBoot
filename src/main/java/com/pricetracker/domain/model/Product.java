@@ -10,8 +10,9 @@ import java.math.BigDecimal;
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
 @DynamoDbBean
 public class Product {
-    private String tenantId;
-    private String productId;
+
+    private String userId;      // PK — era tenantId
+    private String productId;   // SK
     private String url;
     private String name;
     private BigDecimal currentPrice;
@@ -19,7 +20,7 @@ public class Product {
     private String updatedAt;
 
     @DynamoDbPartitionKey
-    public String getTenantId() { return tenantId; }
+    public String getUserId() { return userId; }
 
     @DynamoDbSortKey
     public String getProductId() { return productId; }

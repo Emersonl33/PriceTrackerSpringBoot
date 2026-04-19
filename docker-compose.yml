@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    container_name: dynamodb-local
+    user: root
+    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /home/dynamodblocal/data"
+    ports:
+      - "8000:8000"
+    volumes:
+      - dynamodb-data:/home/dynamodblocal/data
+
+  dynamodb-admin:
+    image: aaronshaf/dynamodb-admin:latest
+    container_name: dynamodb-admin
+    ports:
+      - "8001:8001"
+    environment:
+      DYNAMO_ENDPOINT: http://dynamodb-local:8000
+    depends_on:
+      - dynamodb-local
+
+  price-tracker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: price-tracker
+    ports:
+      - "8080:8080"
+    environment:
+      AWS_DYNAMODB_ENDPOINT: http://dynamodb-local:8000
+      AWS_DYNAMODB_REGION: us-east-1
+      AWS_DYNAMODB_ACCESS_KEY: local
+      AWS_DYNAMODB_SECRET_KEY: local
+      JWT_SECRET: mude-esta-chave-para-algo-seguro-em-producao-32chars
+      JWT_EXPIRATION: 86400000
+      SCRAPER_INTERVAL_MS: 10000
+      ADMIN_SECRET: 123456
+    depends_on:
+      - dynamodb-local
+
+
+volumes:
+  dynamodb-data:
+    driver: local
