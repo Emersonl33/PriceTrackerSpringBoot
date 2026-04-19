@@ -1,0 +1,34 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: springapi
+
+aws:
+  dynamodb:
+    endpoint: http://localhost:8000/
+    region: us-east-1
+    accessKey: ${AWS_ACCESS_KEY_ID:dummy}
+    secretKey: ${AWS_SECRET_ACCESS_KEY:dummy}
+    tables:
+      table-products: Product
+      table-price-history: PriceHistory
+
+jwt:
+  secret: mude-esta-chave-para-algo-seguro-em-producao-com-32-caracteres
+  expiration: 86400000
+
+scraper:
+  interval:
+    ms: 10000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
