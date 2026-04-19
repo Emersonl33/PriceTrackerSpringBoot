@@ -36,7 +36,7 @@ public class PriceScraper {
             String rawPrice = trySelectors(doc, url);
 
             if (rawPrice == null) {
-                log.warn("❌ Nenhum seletor de preço encontrou valor em: {}", url);
+                log.warn(" Nenhum seletor de preço encontrou valor em: {}", url);
                 return Optional.empty();
             }
 
@@ -44,7 +44,7 @@ public class PriceScraper {
             return parsePrice(rawPrice);
 
         } catch (Exception e) {
-            log.error("❌ Erro ao fazer scraping de {}: {}", url, e.getMessage());
+            log.error(" Erro ao fazer scraping de {}: {}", url, e.getMessage());
             return Optional.empty();
         }
     }
@@ -88,14 +88,14 @@ public class PriceScraper {
         // 6. Schema.org microdata
         price = attr(doc, "[itemprop=price]", "content");
         if (isValidPrice(price)) {
-            log.debug("✓ Schema.org (itemprop): {}", price);
+            log.debug(" Schema.org (itemprop): {}", price);
             return price;
         }
 
         // 7. Última opção: procurar por padrão "R$ XXXX,XX"
         price = extractFromBodyText(doc);
         if (isValidPrice(price)) {
-            log.debug("✓ Regex body (R$): {}", price);
+            log.debug("Regex body (R$): {}", price);
             return price;
         }
 
