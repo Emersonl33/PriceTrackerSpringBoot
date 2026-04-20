@@ -1,5 +1,7 @@
 package com.pricetracker.scraper;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -9,17 +11,12 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Component
 public class NuuvemPriceFetcher implements GamePriceFetcher {
 
     private static final Logger log = LoggerFactory.getLogger(NuuvemPriceFetcher.class);
-
-    // Captura valores como: 49,90 / 149,99 / 9,90
-    private static final Pattern PRICE_PATTERN =
-            Pattern.compile("(\\d{1,3}(?:\\.\\d{3})*,\\d{2})");
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public boolean supports(String url) {
@@ -41,7 +38,7 @@ public class NuuvemPriceFetcher implements GamePriceFetcher {
                     .timeout(10_000)
                     .get();
 
-            return trySelectors(doc, url);
+            return extractFromDataPrice(doc, url);
 
         } catch (Exception e) {
             log.error("Erro ao buscar preço na Nuuvem para {}: {}", url, e.getMessage());
@@ -49,53 +46,39 @@ public class NuuvemPriceFetcher implements GamePriceFetcher {
         }
     }
 
-    private Optional<BigDecimal> trySelectors(Document doc, String url) {
-        // Seletor principal da Nuuvem
-        String price = text(doc, ".product-price--val");
-        if (price != null) return parsePrice(price, url);
-
-        // Seletor alternativo (promoção)
-        price = text(doc, ".product-discount--val");
-        if (price != null) return parsePrice(price, url);
-
-        // Seletor genérico de preço
-        price = text(doc, "[class*='price']");
-        if (price != null) return parsePrice(price, url);
-
-        // meta tag og:price
-        Element meta = doc.selectFirst("meta[property=product:price:amount]");
-        if (meta != null) return parsePrice(meta.attr("content"), url);
-
-        log.warn("Nenhum seletor encontrou preço na Nuuvem para: {}", url);
-        return Optional.empty();
-    }
-
-    private Optional<BigDecimal> parsePrice(String raw, String url) {
-        if (raw == null || raw.isBlank()) return Optional.empty();
-
-        Matcher matcher = PRICE_PATTERN.matcher(raw);
-        if (!matcher.find()) {
-            log.warn("Padrão de preço não encontrado em '{}' para {}", raw, url);
-            return Optional.empty();
-        }
-
+    private Optional<BigDecimal> extractFromDataPrice(Document doc, String url) {
         try {
-            String normalized = matcher.group(1)
-                    .replaceAll("\\.", "")   // remove separador de milhar
-                    .replace(",", ".");       // troca vírgula decimal por ponto
+            // Procura por qualquer elemento com atributo data-price
+            Element element = doc.selectFirst("[data-price]");
+            
+            if (element == null) {
+                log.warn("Nenhum elemento com data-price encontrado em: {}", url);
+                return Optional.empty();
+            }
 
-            BigDecimal price = new BigDecimal(normalized);
-            log.info("Nuuvem preço: R$ {} em {}", price, url);
+            String dataPriceJson = element.attr("data-price");
+            log.debug("data-price encontrado: {}", dataPriceJson);
+
+            // Parse do JSON
+            JsonNode jsonNode = objectMapper.readTree(dataPriceJson);
+            
+            // Extrai o valor 'v' (preço em centavos)
+            if (!jsonNode.has("v") || jsonNode.get("v").isNull()) {
+                log.warn("Campo 'v' nao encontrado em data-price para: {}", url);
+                return Optional.empty();
+            }
+
+            long centavos = jsonNode.get("v").asLong();
+            
+            // Converte centavos para BigDecimal (centavos / 100)
+            BigDecimal price = BigDecimal.valueOf(centavos).divide(BigDecimal.valueOf(100));
+            
+            log.info("Nuuvem: R$ {} em {}", price, url);
             return Optional.of(price);
 
-        } catch (NumberFormatException e) {
-            log.warn("Não foi possível converter '{}' para BigDecimal", raw);
+        } catch (Exception e) {
+            log.error("Erro ao parsear data-price da Nuuvem para {}: {}", url, e.getMessage());
             return Optional.empty();
         }
-    }
-
-    private String text(Document doc, String selector) {
-        Element el = doc.selectFirst(selector);
-        return el != null ? el.text() : null;
     }
 }

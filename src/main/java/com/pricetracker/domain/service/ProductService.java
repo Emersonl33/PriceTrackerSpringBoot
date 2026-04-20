@@ -1,4 +1,4 @@
-package com.pricetracker.service;
+package com.pricetracker.domain.service;
 
 import com.pricetracker.domain.model.PriceSnapshot;
 import com.pricetracker.domain.model.Product;
@@ -8,6 +8,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -83,6 +84,25 @@ public class ProductService {
 
     public List<Product> listAllProducts() {
         checkAdmin();
+        return productRepo.findAll();
+    }
+
+    public void saveSnapshot(String productId, BigDecimal price) {
+        PriceSnapshot snapshot = PriceSnapshot.builder()
+                .productId(productId)
+                .capturedAt(Instant.now().toString())
+                .price(price)
+                .build();
+        snapshotRepo.save(snapshot);
+    }
+
+    public void updateCurrentPrice(Product product, BigDecimal price) {
+        product.setCurrentPrice(price);
+        product.setUpdatedAt(Instant.now().toString());
+        productRepo.save(product);
+    }
+
+    public List<Product> findAllProducts() {
         return productRepo.findAll();
     }
 

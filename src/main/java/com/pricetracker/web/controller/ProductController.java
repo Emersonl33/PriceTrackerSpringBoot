@@ -2,7 +2,7 @@ package com.pricetracker.web.controller;
 
 import com.pricetracker.domain.model.PriceSnapshot;
 import com.pricetracker.domain.model.Product;
-import com.pricetracker.service.ProductService;
+import com.pricetracker.domain.service.ProductService;
 import com.pricetracker.web.dto.AddProductRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

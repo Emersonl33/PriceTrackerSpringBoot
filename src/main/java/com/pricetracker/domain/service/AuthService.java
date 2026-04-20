@@ -1,4 +1,4 @@
-package com.pricetracker.service;
+package com.pricetracker.domain.service;
 
 
 import com.pricetracker.domain.model.AppUser;

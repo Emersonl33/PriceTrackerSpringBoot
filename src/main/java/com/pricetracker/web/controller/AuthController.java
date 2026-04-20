@@ -1,6 +1,6 @@
 package com.pricetracker.web.controller;
 
-import com.pricetracker.service.AuthService;
+import com.pricetracker.domain.service.AuthService;
 import com.pricetracker.web.dto.LoginRequest;
 import com.pricetracker.web.dto.LoginResponse;
 import com.pricetracker.web.dto.RegisterAdminRequest;
