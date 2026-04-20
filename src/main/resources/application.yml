@@ -1,0 +1,16 @@
+aws:
+  dynamodb:
+    endpoint: ${AWS_DYNAMODB_ENDPOINT:http://localhost:8000}
+    region: ${AWS_DYNAMODB_REGION:us-east-1}
+    accessKey: ${AWS_DYNAMODB_ACCESS_KEY:local}
+    secretKey: ${AWS_DYNAMODB_SECRET_KEY:local}
+admin:
+  secret: ${ADMIN_SECRET:minha-chave-admin-secreta}
+
+jwt:
+  secret: ${JWT_SECRET:mude-esta-chave-para-algo-seguro-em-producao-32chars}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+scraper:
+  interval:
+    ms: ${SCRAPER_INTERVAL_MS:3600000}
