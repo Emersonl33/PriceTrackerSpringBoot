@@ -27,11 +27,15 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/register", "/auth/login").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                        // Swagger e documentacao
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
+                        .requestMatchers("/webjars/**").permitAll()
+                        // Autenticacao publica
+                        .requestMatchers("/auth/register", "/auth/login", "/auth/register/admin").permitAll()
+                        // Rotas admin
                         .requestMatchers("/auth/users").hasRole("ADMIN")
                         .requestMatchers("/products/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/auth/register", "/auth/login", "/auth/register/admin").permitAll()
+                        // Resto requer autenticacao
                         .anyRequest().authenticated()
 
                 )

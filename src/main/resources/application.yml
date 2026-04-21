@@ -1,3 +1,10 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: Steam Price Tracker
+
 aws:
   dynamodb:
     endpoint: ${AWS_DYNAMODB_ENDPOINT:http://localhost:8000}
@@ -10,6 +17,17 @@ admin:
 jwt:
   secret: ${JWT_SECRET:mude-esta-chave-para-algo-seguro-em-producao-32chars}
   expiration: ${JWT_EXPIRATION:86400000}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  show-actuator: true
 
 scraper:
   interval:

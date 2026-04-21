@@ -41,7 +41,6 @@ services:
     depends_on:
       - dynamodb-local
 
-
 volumes:
   dynamodb-data:
     driver: local
