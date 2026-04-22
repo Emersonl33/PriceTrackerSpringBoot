@@ -36,7 +36,7 @@ services:
       AWS_DYNAMODB_SECRET_KEY: local
       JWT_SECRET: mude-esta-chave-para-algo-seguro-em-producao-32chars
       JWT_EXPIRATION: 86400000
-      SCRAPER_INTERVAL_MS: 43200000 #12 horas
+      SCRAPER_INTERVAL_MS: 10000 #12 horas
       ADMIN_SECRET: 123456
     depends_on:
       - dynamodb-local

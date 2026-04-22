@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -18,6 +20,10 @@ public class ProductService {
 
     private final ProductRepository productRepo;
     private final SnapshotRepository snapshotRepo;
+    private static final ZoneId BRAZIL_ZONE = ZoneId.of("America/Sao_Paulo");
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter
+            .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+            .withZone(BRAZIL_ZONE);
 
     public ProductService(ProductRepository productRepo,
                           SnapshotRepository snapshotRepo) {
@@ -28,6 +34,10 @@ public class ProductService {
     private String currentUserId() {
         return (String) SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();
+    }
+
+    private String getNowBRL() {
+        return FORMATTER.format(Instant.now());
     }
 
     public Product addProduct(String url, String name) {
@@ -46,8 +56,8 @@ public class ProductService {
                 .productId(UUID.randomUUID().toString())
                 .url(url)
                 .name(name)
-                .createdAt(Instant.now().toString())
-                .updatedAt(Instant.now().toString())
+                .createdAt(getNowBRL())
+                .updatedAt(getNowBRL())
                 .build();
         productRepo.save(product);
         return product;
@@ -90,7 +100,7 @@ public class ProductService {
     public void saveSnapshot(String productId, BigDecimal price) {
         PriceSnapshot snapshot = PriceSnapshot.builder()
                 .productId(productId)
-                .capturedAt(Instant.now().toString())
+                .capturedAt(getNowBRL())
                 .price(price)
                 .build();
         snapshotRepo.save(snapshot);
@@ -98,7 +108,7 @@ public class ProductService {
 
     public void updateCurrentPrice(Product product, BigDecimal price) {
         product.setCurrentPrice(price);
-        product.setUpdatedAt(Instant.now().toString());
+        product.setUpdatedAt(getNowBRL());
         productRepo.save(product);
     }
 
